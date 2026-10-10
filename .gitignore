@@ -1,0 +1,22 @@
+# Maven
+target/
+*.class
+*.jar
+dependency-reduced-pom.xml
+
+# Logs
+logs/
+*.log
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.classpath
+*.project
+.settings/
+
+# Environment / secrets – NEVER commit credentials
+.env
+db.properties
+application-local.properties
