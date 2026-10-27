@@ -29,6 +29,14 @@
         <logback.version>1.5.6</logback.version>
         <junit.version>5.11.0</junit.version>
         <mockito.version>5.12.0</mockito.version>
+
+        <!-- Member 3 – Security / RBAC / Audit Engine -->
+        <!-- PBKDF2-HMAC-SHA256 is provided by the standard JDK (javax.crypto). -->
+        <!-- If upgrading to Argon2id: add Bouncy Castle 1.78.1 here -->
+
+        <!-- Member 4 – UI / API Layer -->
+        <gson.version>2.11.0</gson.version>
+    
     </properties>
 
     <dependencies>
@@ -79,7 +87,15 @@
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Gson – JSON serialisation for the REST API layer (Member 4) -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
+        </dependency>
     </dependencies>
+
 
     <build>
         <plugins>

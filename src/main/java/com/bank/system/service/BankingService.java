@@ -2,6 +2,8 @@ package com.bank.system.service;
 
 import com.bank.system.config.DatabaseConfig;
 import com.bank.system.dao.AccountDAO;
+import com.bank.system.dao.BranchDAO;
+import com.bank.system.dao.CustomerDAO;
 import com.bank.system.dao.TransactionDAO;
 import com.bank.system.exception.AccountNotFoundException;
 import com.bank.system.exception.BankingException;
@@ -9,6 +11,8 @@ import com.bank.system.exception.InsufficientBalanceException;
 import com.bank.system.model.Account;
 import com.bank.system.model.Account.AccountStatus;
 import com.bank.system.model.Account.AccountType;
+import com.bank.system.model.Branch;
+import com.bank.system.model.Customer;
 import com.bank.system.model.Transaction;
 import com.bank.system.model.Transaction.TransactionStatus;
 import com.bank.system.model.Transaction.TransactionType;
@@ -19,6 +23,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * BankingService – the core business-logic layer.
@@ -45,7 +50,10 @@ public class BankingService {
     private static final Logger log = LoggerFactory.getLogger(BankingService.class);
 
     private final AccountDAO         accountDAO;
-    private final TransactionDAO      transactionDAO;
+    private final TransactionDAO     transactionDAO;
+    private final CustomerDAO        customerDAO;
+    private final BranchDAO          branchDAO;
+
     /**
      * Functional interface that supplies a JDBC {@link Connection}.
      * Declared here so that method references like
@@ -68,22 +76,30 @@ public class BankingService {
      */
     public BankingService() {
         this(new AccountDAO(), new TransactionDAO(),
-             DatabaseConfig.getInstance()::getConnection);
+             DatabaseConfig.getInstance()::getConnection,
+             new CustomerDAO(), new BranchDAO());
     }
 
     /**
-     * Full DI constructor – pass mock DAOs and a mock {@link ConnectionSupplier}
-     * so unit tests never touch {@link DatabaseConfig} or env vars.
-     *
-     * @param accountDAO         mock or real account DAO
-     * @param transactionDAO     mock or real transaction DAO
-     * @param connectionSupplier supplies JDBC connections (mock in tests)
+     * Backward-compatible DI constructor – pass mock DAOs and connection supplier.
      */
     public BankingService(AccountDAO accountDAO, TransactionDAO transactionDAO,
                           ConnectionSupplier connectionSupplier) {
+        this(accountDAO, transactionDAO, connectionSupplier,
+             new CustomerDAO(), new BranchDAO());
+    }
+
+    /**
+     * Full DI constructor for unit testing with all DAOs.
+     */
+    public BankingService(AccountDAO accountDAO, TransactionDAO transactionDAO,
+                          ConnectionSupplier connectionSupplier,
+                          CustomerDAO customerDAO, BranchDAO branchDAO) {
         this.accountDAO         = accountDAO;
         this.transactionDAO     = transactionDAO;
         this.connectionSupplier = connectionSupplier;
+        this.customerDAO        = customerDAO;
+        this.branchDAO          = branchDAO;
     }
 
     /** Convenience constructor for backward compatibility. */
@@ -128,6 +144,65 @@ public class BankingService {
      */
     public List<Account> getAccountsByCustomer(int customerId) {
         return accountDAO.findByCustomerId(customerId);
+    }
+
+    /**
+     * Returns all accounts up to the specified limit.
+     */
+    public List<Account> getAllAccounts(int limit) {
+        return accountDAO.findAll(limit);
+    }
+
+    public List<Account> getAllAccounts() {
+        return accountDAO.findAll();
+    }
+
+    /**
+     * Returns all customers.
+     */
+    public List<Customer> getAllCustomers() {
+        return customerDAO.findAll();
+    }
+
+    /**
+     * Returns a customer by ID.
+     */
+    public Optional<Customer> getCustomer(int customerId) {
+        return customerDAO.findById(customerId);
+    }
+
+    /**
+     * Creates a new customer record.
+     */
+    public int createCustomer(String firstName, String lastName, String email,
+                              String phone, String nationalId, String address) {
+        if (firstName == null || firstName.isBlank() || lastName == null || lastName.isBlank()) {
+            throw new BankingException("First name and last name are required.");
+        }
+        if (email == null || email.isBlank()) {
+            throw new BankingException("Email is required.");
+        }
+        if (phone == null || phone.isBlank()) {
+            throw new BankingException("Phone number is required.");
+        }
+        if (nationalId == null || nationalId.isBlank()) {
+            throw new BankingException("National ID is required.");
+        }
+        return customerDAO.createCustomer(firstName, lastName, email, phone, nationalId, address);
+    }
+
+    /**
+     * Returns all branches.
+     */
+    public List<Branch> getAllBranches() {
+        return branchDAO.findAll();
+    }
+
+    /**
+     * Returns a branch by ID.
+     */
+    public Optional<Branch> getBranch(int branchId) {
+        return branchDAO.findById(branchId);
     }
 
     /**
@@ -292,6 +367,43 @@ public class BankingService {
         }
     }
 
+    /**
+     * Transfers funds atomically using the PostgreSQL stored procedure
+     * {@code process_fund_transfer}.
+     *
+     * @param senderAccountNumber   account to debit
+     * @param receiverAccountNumber account to credit
+     * @param amount                positive transfer amount
+     * @param note                  optional reference note
+     * @return the generated transaction ID
+     */
+    public long transferViaProcedure(long senderAccountNumber, long receiverAccountNumber,
+                                     BigDecimal amount, String note) {
+        validatePositiveAmount(amount);
+        if (senderAccountNumber == receiverAccountNumber) {
+            throw new BankingException("Sender and receiver accounts must be different.");
+        }
+
+        try (Connection conn = connectionSupplier.get()) {
+            conn.setAutoCommit(false);
+            try {
+                transactionDAO.executeTransferProcedure(
+                    conn, senderAccountNumber, receiverAccountNumber, amount, note);
+                conn.commit();
+                log.info("Procedure Transfer ₹{} : {} → {} completed.",
+                         amount, senderAccountNumber, receiverAccountNumber);
+
+                List<Transaction> hist = transactionDAO.getHistory(senderAccountNumber, 1);
+                return hist.isEmpty() ? 0L : hist.get(0).getTransactionId();
+            } catch (Exception e) {
+                safeRollback(conn);
+                throw toServiceException("Procedure transfer failed", e);
+            }
+        } catch (SQLException e) {
+            throw new BankingException("Procedure transfer failed (connection error): " + e.getMessage(), e);
+        }
+    }
+
     // ── Query operations ──────────────────────────────────────────────────────
 
     /**
@@ -323,7 +435,7 @@ public class BankingService {
      * transaction) and verifies it is ACTIVE.
      */
     private Account requireActive(Connection conn, long accountNumber) throws SQLException {
-        Account acc = accountDAO.findById(accountNumber)
+        Account acc = accountDAO.findById(conn, accountNumber)
             .orElseThrow(() -> new AccountNotFoundException(accountNumber));
 
         if (acc.getStatus() != AccountStatus.ACTIVE) {

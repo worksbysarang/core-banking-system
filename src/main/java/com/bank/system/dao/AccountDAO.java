@@ -33,10 +33,18 @@ public class AccountDAO {
         "       balance, status, created_at " +
         "  FROM accounts WHERE account_number = ?";
 
+    private static final String SQL_FIND_BY_ID_FOR_UPDATE =
+        SQL_FIND_BY_ID + " FOR UPDATE";
+
     private static final String SQL_FIND_BY_CUSTOMER =
         "SELECT account_number, customer_id, branch_id, account_type, " +
         "       balance, status, created_at " +
         "  FROM accounts WHERE customer_id = ?";
+
+    private static final String SQL_FIND_ALL =
+        "SELECT account_number, customer_id, branch_id, account_type, " +
+        "       balance, status, created_at " +
+        "  FROM accounts ORDER BY account_number ASC LIMIT ?";
 
     private static final String SQL_INSERT =
         "INSERT INTO accounts (customer_id, branch_id, account_type, balance, status) " +
@@ -111,6 +119,29 @@ public class AccountDAO {
         } catch (SQLException e) {
             throw new BankingException(
                 "Error fetching account " + accountNumber + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Finds an account on the caller's connection and locks the row
+     * ({@code SELECT … FOR UPDATE}) so deposit, withdrawal, and transfer
+     * share one JDBC transaction and cannot race on the same balances.
+     *
+     * @param conn          active connection (auto-commit should be {@code false})
+     * @param accountNumber the account to look up
+     * @return the account if it exists
+     * @throws SQLException on DB error (caller handles rollback)
+     */
+    public Optional<Account> findById(Connection conn, long accountNumber)
+            throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_FIND_BY_ID_FOR_UPDATE)) {
+            ps.setLong(1, accountNumber);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
+                return Optional.empty();
+            }
         }
     }
 
@@ -210,6 +241,33 @@ public class AccountDAO {
             throw new BankingException(
                 "Error updating status for account " + accountNumber + ": " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Retrieves all accounts in the system up to the specified limit.
+     *
+     * @param limit maximum number of accounts to return
+     * @return list of accounts
+     */
+    public List<Account> findAll(int limit) {
+        List<Account> accounts = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_FIND_ALL)) {
+
+            ps.setInt(1, limit > 0 ? limit : 200);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    accounts.add(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new BankingException("Error fetching accounts: " + e.getMessage(), e);
+        }
+        return accounts;
+    }
+
+    public List<Account> findAll() {
+        return findAll(200);
     }
 
     // ── Row mapper ────────────────────────────────────────────────────────────

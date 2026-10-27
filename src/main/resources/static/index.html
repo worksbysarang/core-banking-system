@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meridian Core Banking & Multi-Branch Transaction Ledger</title>
+  <meta name="description" content="Production-ready Core Banking and Multi-Branch Transaction Ledger System with RBAC, atomic transfers, PostgreSQL stored procedures, and audit logging." />
+  
+  <!-- Modern Typography from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+
+  <!-- Floating Toast Notifications -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- ── 1. LOGIN VIEW ──────────────────────────────────────────────────────── -->
+  <div id="login-view" class="login-shell">
+    <div class="login-backdrop-glow"></div>
+    
+    <aside class="login-brand">
+      <div class="brand-badge">
+        <span class="pulsing-dot"></span>
+        <span>PostgreSQL 17 · Supabase · HikariCP · Java 17</span>
+      </div>
+      
+      <div class="brand-hero">
+        <div class="brand-icon-wrap">
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4" />
+          </svg>
+        </div>
+        <h1>Meridian Core Banking</h1>
+        <p class="lede">
+          Multi-Branch Transaction Ledger with fine-grained RBAC, row-level concurrency locking, atomic JDBC boundaries, and immutable compliance audit tracking.
+        </p>
+      </div>
+
+      <div class="feature-pills">
+        <div class="pill">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          <span>Deadlock-Free Two-Phase Transfer Locks</span>
+        </div>
+        <div class="pill">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          <span>MFA Verification Step-Up for Transfers ≥ ₹10,000</span>
+        </div>
+        <div class="pill">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          <span>PL/pgSQL Procedure &amp; Audit Trigger Integration</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="login-card-wrap">
+      <div class="glass-card login-card">
+        <div class="login-card-header">
+          <h2>Sign in to Ledger</h2>
+          <p class="muted">Select a demo role below for 1-click test credentials, or enter custom details.</p>
+        </div>
+
+        <div class="role-selector-label">Quick Demo Personas:</div>
+        <div class="demo-chips-grid" id="demo-chips">
+          <button type="button" class="demo-chip" data-user="alice" data-pass="Customer@1234">
+            <span class="chip-avatar customer">AL</span>
+            <div class="chip-info">
+              <strong>Alice Smith</strong>
+              <span>Customer (Cust #1)</span>
+            </div>
+          </button>
+          <button type="button" class="demo-chip" data-user="bob" data-pass="Customer@1234">
+            <span class="chip-avatar customer">BO</span>
+            <div class="chip-info">
+              <strong>Bob Jones</strong>
+              <span>Customer (Cust #2)</span>
+            </div>
+          </button>
+          <button type="button" class="demo-chip" data-user="teller01" data-pass="Teller@1234">
+            <span class="chip-avatar teller">TL</span>
+            <div class="chip-info">
+              <strong>Teller 01</strong>
+              <span>Teller (Operations)</span>
+            </div>
+          </button>
+          <button type="button" class="demo-chip" data-user="mgr01" data-pass="Manager@1234">
+            <span class="chip-avatar manager">BM</span>
+            <div class="chip-info">
+              <strong>Manager 01</strong>
+              <span>Branch Manager</span>
+            </div>
+          </button>
+          <button type="button" class="demo-chip" data-user="audit01" data-pass="Auditor@1234">
+            <span class="chip-avatar auditor">AU</span>
+            <div class="chip-info">
+              <strong>Auditor 01</strong>
+              <span>Compliance / Auditor</span>
+            </div>
+          </button>
+          <button type="button" class="demo-chip" data-user="admin" data-pass="Admin@1234">
+            <span class="chip-avatar admin">AD</span>
+            <div class="chip-info">
+              <strong>System Admin</strong>
+              <span>Super Administrator</span>
+            </div>
+          </button>
+        </div>
+
+        <form id="login-form" class="login-form">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <div class="input-wrap">
+              <input id="username" name="username" placeholder="e.g. alice, mgr01, admin" autocomplete="username" required />
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="input-wrap">
+              <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+            </div>
+          </div>
+
+          <div id="login-error" class="error-banner" hidden></div>
+
+          <button type="submit" id="login-submit-btn" class="btn btn-primary btn-block">
+            <span>Authenticate Session</span>
+            <svg class="btn-arrow" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <!-- ── 2. MAIN APPLICATION VIEW ─────────────────────────────────────────── -->
+  <div id="app-view" class="app-shell" hidden>
+    
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-left">
+        <div class="nav-brand">
+          <div class="nav-brand-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4" />
+            </svg>
+          </div>
+          <div>
+            <span class="nav-title">Meridian Ledger</span>
+            <span class="nav-badge-env">SUPABASE POSTGRES</span>
+          </div>
+        </div>
+
+        <!-- Global Search / Account Quick Jump -->
+        <div class="nav-search-wrap">
+          <svg class="nav-search-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+          </svg>
+          <input type="text" id="global-search-input" placeholder="Jump to account number or customer..." />
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- Live System Health Indicator -->
+        <div class="system-status-pill" id="health-pill" title="Backend API Health">
+          <span class="status-indicator-dot online"></span>
+          <span>Core Engine Live</span>
+        </div>
+
+        <!-- Quick Switch Persona -->
+        <div class="persona-switcher-dropdown">
+          <button type="button" class="btn btn-outline btn-sm" id="switch-role-btn">
+            <span>Switch Role</span>
+            <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;margin-left:4px;"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+
+        <!-- User Profile Pill -->
+        <div class="user-pill">
+          <div class="user-avatar" id="nav-avatar">U</div>
+          <div class="user-details">
+            <span class="user-name" id="nav-username">alice</span>
+            <span class="user-role-badge" id="nav-role">CUSTOMER</span>
+          </div>
+          <span id="mfa-badge" class="mfa-chip" hidden title="MFA Verified for Transfers ≥ ₹10,000">
+            <svg viewBox="0 0 20 20" fill="currentColor" style="width:12px;height:12px;"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            MFA Active
+          </span>
+        </div>
+
+        <button type="button" id="logout-btn" class="btn btn-ghost btn-icon" title="Sign out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs Bar -->
+    <nav class="subnav">
+      <div class="tabs-list" role="tablist">
+        <button type="button" class="tab-btn active" data-tab="accounts" id="tab-accounts-btn">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" /></svg>
+          <span>Accounts &amp; Ledger</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab="transactions" id="tab-transactions-btn">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" /></svg>
+          <span>Move Money</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab="history" id="tab-history-btn">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" /></svg>
+          <span>Transaction Statements</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab="customers" id="tab-customers-btn">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
+          <span>Customer Directory</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab="audit" id="tab-audit-btn" hidden>
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+          <span>Compliance &amp; Audit Trail</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab="security" id="tab-security-btn">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" /></svg>
+          <span>MFA &amp; Security</span>
+        </button>
+      </div>
+
+      <div class="subnav-actions">
+        <button type="button" id="btn-open-account-modal" class="btn btn-primary btn-sm" hidden>
+          <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+          <span>Open Account</span>
+        </button>
+        <button type="button" id="btn-create-customer-modal" class="btn btn-outline btn-sm" hidden>
+          <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+          <span>New Customer</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="content-container">
+
+      <!-- Metrics Highlight Bar -->
+      <section class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-label">Active Accounts</span>
+          <div class="metric-value" id="metric-accounts-count">—</div>
+          <span class="metric-sub" id="metric-accounts-sub">Across all registered branches</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Total Liquid Ledger</span>
+          <div class="metric-value accent-green" id="metric-total-balance">₹0.00</div>
+          <span class="metric-sub">Sum of active customer balances</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Branch Network</span>
+          <div class="metric-value" id="metric-branch-count">2</div>
+          <span class="metric-sub">Mumbai &amp; Delhi Multi-Branch</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Compliance Status</span>
+          <div class="metric-value accent-gold" id="metric-audit-flags">SECURE</div>
+          <span class="metric-sub">Auto-audit trigger active</span>
+        </div>
+      </section>
+
+      <!-- ── TAB 1: ACCOUNTS & LEDGER ────────────────────────────────────── -->
+      <section id="tab-accounts" class="tab-pane active">
+        <div class="section-toolbar">
+          <div class="toolbar-left">
+            <h2>Account Portfolio</h2>
+            <p class="muted">Manage savings, checking, and loan accounts with real-time balance tracking.</p>
+          </div>
+          <div class="toolbar-right">
+            <div id="customer-filter-group" class="filter-group" hidden>
+              <label for="customer-filter-select">Customer:</label>
+              <select id="customer-filter-select" class="form-select-sm">
+                <option value="all">All Customers</option>
+              </select>
+            </div>
+            <button type="button" id="refresh-accounts-btn" class="btn btn-outline btn-sm">
+              <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="accounts-grid" class="accounts-grid">
+          <!-- Rendered by JS as luxury cards -->
+        </div>
+      </section>
+
+      <!-- ── TAB 2: MONEY OPERATIONS (TRANSFER / DEPOSIT / WITHDRAW) ──────── -->
+      <section id="tab-transactions" class="tab-pane">
+        <div class="transaction-layout">
+          <!-- Transfer Panel -->
+          <div class="glass-card op-card">
+            <div class="op-card-header">
+              <div class="op-badge transfer">ATOMIC TRANSFER</div>
+              <h3>Transfer Funds</h3>
+              <p class="muted">Instant inter-account transfer with deadlock-safe ascending row locks.</p>
+            </div>
+
+            <form id="form-transfer" class="flow-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="tf-sender">Source Account (Debit)</label>
+                  <select id="tf-sender" required></select>
+                </div>
+                <div class="form-group">
+                  <label for="tf-receiver">Destination Account (Credit)</label>
+                  <input id="tf-receiver" type="number" min="1" placeholder="Recipient Account #" required />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="tf-amount">Transfer Amount (₹)</label>
+                <div class="input-currency-wrap">
+                  <span class="currency-symbol">₹</span>
+                  <input id="tf-amount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+                </div>
+                <div class="amount-presets">
+                  <button type="button" class="preset-btn" data-amt="500">₹500</button>
+                  <button type="button" class="preset-btn" data-amt="2000">₹2,000</button>
+                  <button type="button" class="preset-btn" data-amt="5000">₹5,000</button>
+                  <button type="button" class="preset-btn" data-amt="10000">₹10,000 (MFA)</button>
+                  <button type="button" class="preset-btn" data-amt="25000">₹25,000</button>
+                </div>
+              </div>
+
+              <!-- High-Value MFA Notice -->
+              <div id="mfa-transfer-warning" class="mfa-inline-notice" hidden>
+                <div class="notice-icon">⚠️</div>
+                <div class="notice-content">
+                  <strong>High-Value Transfer (≥ ₹10,000)</strong>
+                  <span>Requires MFA verification. If unverified, this transfer will be gated.</span>
+                  <button type="button" id="quick-verify-mfa-btn" class="btn btn-sm btn-gold">Verify MFA Now</button>
+                </div>
+              </div>
+
+              <!-- Execution Mode Switcher (JDBC vs Stored Procedure) -->
+              <div class="procedure-toggle-box">
+                <label class="toggle-switch-label">
+                  <input type="checkbox" id="tf-use-procedure" />
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-text">Execute via PostgreSQL Stored Procedure (<code>process_fund_transfer</code>)</span>
+                </label>
+                <p class="toggle-desc muted">When checked, executes <code>CALL process_fund_transfer(?, ?, ?, ?)</code> inside PL/pgSQL instead of Java JDBC multi-row updates.</p>
+              </div>
+
+              <div class="form-group">
+                <label for="tf-note">Reference Note</label>
+                <input id="tf-note" placeholder="e.g. Invoice payment, rent, gift" maxlength="255" />
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block">
+                <span>Confirm &amp; Execute Transfer</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Secondary Operations: Deposit & Withdraw (Tellers / Staff) -->
+          <div class="secondary-ops-col">
+            <!-- Deposit -->
+            <div class="glass-card op-card" id="deposit-panel">
+              <div class="op-card-header">
+                <div class="op-badge deposit">DEPOSIT</div>
+                <h4>Deposit Funds</h4>
+                <p class="muted">Credit funds to any active account (Teller/Staff).</p>
+              </div>
+              <form id="form-deposit" class="flow-form">
+                <div class="form-group">
+                  <label for="dep-account">Destination Account</label>
+                  <input id="dep-account" type="number" min="1" placeholder="Account #" required />
+                </div>
+                <div class="form-group">
+                  <label for="dep-amount">Amount (₹)</label>
+                  <input id="dep-amount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+                </div>
+                <div class="form-group">
+                  <label for="dep-note">Note</label>
+                  <input id="dep-note" placeholder="Cash deposit, branch counter" />
+                </div>
+                <button type="submit" class="btn btn-emerald btn-block">Execute Deposit</button>
+              </form>
+            </div>
+
+            <!-- Withdraw -->
+            <div class="glass-card op-card" id="withdraw-panel">
+              <div class="op-card-header">
+                <div class="op-badge withdraw">WITHDRAWAL</div>
+                <h4>Withdraw Funds</h4>
+                <p class="muted">Debit funds from an active account (Teller/Staff).</p>
+              </div>
+              <form id="form-withdraw" class="flow-form">
+                <div class="form-group">
+                  <label for="wd-account">Source Account</label>
+                  <input id="wd-account" type="number" min="1" placeholder="Account #" required />
+                </div>
+                <div class="form-group">
+                  <label for="wd-amount">Amount (₹)</label>
+                  <input id="wd-amount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+                </div>
+                <div class="form-group">
+                  <label for="wd-note">Note</label>
+                  <input id="wd-note" placeholder="ATM / Counter withdrawal" />
+                </div>
+                <button type="submit" class="btn btn-rose btn-block">Execute Withdrawal</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── TAB 3: TRANSACTION STATEMENTS ────────────────────────────────── -->
+      <section id="tab-history" class="tab-pane">
+        <div class="section-toolbar">
+          <div class="toolbar-left">
+            <h2>Transaction Statements</h2>
+            <p class="muted">Chronological ledger entries with sender, receiver, and reference audit stamps.</p>
+          </div>
+          <div class="toolbar-right">
+            <div class="filter-group">
+              <label for="history-account-select">Account:</label>
+              <select id="history-account-select" class="form-select-sm"></select>
+            </div>
+            <button type="button" id="refresh-history-btn" class="btn btn-outline btn-sm">Refresh Ledger</button>
+          </div>
+        </div>
+
+        <div class="table-container glass-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tx ID</th>
+                <th>Type</th>
+                <th>From Account</th>
+                <th>To Account</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Reference Note</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <tr><td colspan="8" class="text-center muted">Select an account to load statement history.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── TAB 4: CUSTOMER DIRECTORY ────────────────────────────────────── -->
+      <section id="tab-customers" class="tab-pane">
+        <div class="section-toolbar">
+          <div class="toolbar-left">
+            <h2>Customer Directory</h2>
+            <p class="muted">Registered customers, national identification records, and linked ledger portfolios.</p>
+          </div>
+          <div class="toolbar-right">
+            <button type="button" id="refresh-customers-btn" class="btn btn-outline btn-sm">Refresh List</button>
+          </div>
+        </div>
+
+        <div id="customers-grid" class="customers-grid">
+          <!-- Rendered by JS -->
+        </div>
+      </section>
+
+      <!-- ── TAB 5: COMPLIANCE & AUDIT TRAIL ──────────────────────────────── -->
+      <section id="tab-audit" class="tab-pane">
+        <div class="section-toolbar">
+          <div class="toolbar-left">
+            <h2>Security Audit &amp; Compliance Trail</h2>
+            <p class="muted">Immutable event ledger recording authentication, fund transfers, and high-value triggers.</p>
+          </div>
+          <div class="toolbar-right">
+            <div class="filter-group">
+              <label for="audit-filter-type">Filter by Event:</label>
+              <select id="audit-filter-type" class="form-select-sm">
+                <option value="">All Events</option>
+                <option value="LOGIN_SUCCESS">Login Success</option>
+                <option value="LOGIN_FAILURE">Login Failure</option>
+                <option value="HIGH_VALUE_TRANSACTION">High-Value Flagged (Trigger)</option>
+                <option value="TRANSFER">Transfer</option>
+                <option value="DEPOSIT">Deposit</option>
+                <option value="WITHDRAWAL">Withdrawal</option>
+                <option value="ACCOUNT_OPENED">Account Opened</option>
+                <option value="ACCOUNT_FROZEN">Account Frozen</option>
+                <option value="ACCESS_DENIED">Access Denied (RBAC)</option>
+              </select>
+            </div>
+            <button type="button" id="refresh-audit-btn" class="btn btn-outline btn-sm">Refresh Trail</button>
+          </div>
+        </div>
+
+        <div class="table-container glass-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Event #</th>
+                <th>Event Type</th>
+                <th>User</th>
+                <th>Account</th>
+                <th>Event Details</th>
+                <th>Recorded At</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table-body">
+              <tr><td colspan="6" class="text-center muted">Loading security audit records...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── TAB 6: MFA & SECURITY ────────────────────────────────────────── -->
+      <section id="tab-security" class="tab-pane">
+        <div class="security-layout">
+          <div class="glass-card security-card">
+            <div class="op-card-header">
+              <div class="op-badge mfa">STEP-UP SECURITY</div>
+              <h3>Multi-Factor Authentication (TOTP)</h3>
+              <p class="muted">High-value transactions (≥ ₹10,000) require step-up verification per RBI compliance regulations.</p>
+            </div>
+
+            <div class="mfa-status-display">
+              <div class="mfa-shield" id="mfa-shield-icon">🛡️</div>
+              <div class="mfa-status-text">
+                <h4 id="mfa-status-title">MFA Not Verified For Current Session</h4>
+                <p id="mfa-status-desc" class="muted">Transfers at or above ₹10,000 will be blocked until verified.</p>
+              </div>
+            </div>
+
+            <form id="form-mfa" class="flow-form">
+              <div class="form-group">
+                <label for="mfa-code-input">6-Digit Authenticator Code</label>
+                <div class="code-input-row">
+                  <input id="mfa-code-input" class="code-box" maxlength="6" placeholder="123456" autocomplete="one-time-code" />
+                  <button type="button" id="autofill-mfa-btn" class="btn btn-outline btn-sm">Autofill Demo Code (123456)</button>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-gold btn-block">Verify Security Step-Up</button>
+            </form>
+          </div>
+
+          <div class="glass-card security-card" id="admin-security-panel">
+            <div class="op-card-header">
+              <div class="op-badge admin">ADMIN CONTROL</div>
+              <h3>RBAC Policy &amp; Security State</h3>
+              <p class="muted">Role-Based Access Control and brute-force lockout guard.</p>
+            </div>
+
+            <div class="security-info-grid">
+              <div class="info-item">
+                <span class="info-label">Active Role</span>
+                <span class="info-val" id="sec-current-role">CUSTOMER</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Brute-Force Threshold</span>
+                <span class="info-val">5 Failed Attempts</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">High-Value Threshold</span>
+                <span class="info-val">₹10,000.00</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Encryption</span>
+                <span class="info-val">PBKDF2-HMAC-SHA256 (310k iter)</span>
+              </div>
+            </div>
+
+            <div class="rbac-permissions-box">
+              <span class="info-label">Granted Permissions for Current Identity:</span>
+              <div id="granted-permissions-chips" class="permissions-chips">
+                <!-- Injected by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ── 3. MODALS ──────────────────────────────────────────────────────────── -->
+
+  <!-- Modal: Open New Account -->
+  <div id="modal-open-account" class="modal-overlay" hidden>
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3>Open New Bank Account</h3>
+        <button type="button" class="modal-close-btn" data-close="modal-open-account">&times;</button>
+      </div>
+      <form id="form-open-account" class="flow-form">
+        <div class="form-group">
+          <label for="open-customer-select">Customer</label>
+          <select id="open-customer-select" required></select>
+        </div>
+        <div class="form-group">
+          <label for="open-branch-select">Branch</label>
+          <select id="open-branch-select" required></select>
+        </div>
+        <div class="form-group">
+          <label for="open-account-type">Account Type</label>
+          <select id="open-account-type">
+            <option value="SAVINGS">SAVINGS (Standard interest-bearing account)</option>
+            <option value="CHECKING">CHECKING (Commercial checking account)</option>
+            <option value="LOAN">LOAN (Credit line account)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="open-initial-balance">Initial Deposit (₹)</label>
+          <input id="open-initial-balance" type="number" min="0" step="0.01" value="1000.00" required />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close="modal-open-account">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Create Customer -->
+  <div id="modal-create-customer" class="modal-overlay" hidden>
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3>Onboard New Customer</h3>
+        <button type="button" class="modal-close-btn" data-close="modal-create-customer">&times;</button>
+      </div>
+      <form id="form-create-customer" class="flow-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cust-first-name">First Name</label>
+            <input id="cust-first-name" placeholder="e.g. Ramesh" required />
+          </div>
+          <div class="form-group">
+            <label for="cust-last-name">Last Name</label>
+            <input id="cust-last-name" placeholder="e.g. Sharma" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cust-email">Email Address</label>
+            <input id="cust-email" type="email" placeholder="ramesh@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="cust-phone">Mobile Phone</label>
+            <input id="cust-phone" placeholder="9876543210" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="cust-national-id">National ID / PAN / Aadhaar</label>
+          <input id="cust-national-id" placeholder="NID100099" required />
+        </div>
+        <div class="form-group">
+          <label for="cust-address">Residential Address</label>
+          <input id="cust-address" placeholder="Flat 402, Skyline Towers, Mumbai" required />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close="modal-create-customer">Cancel</button>
+          <button type="submit" class="btn btn-primary">Register Customer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Update Account Status -->
+  <div id="modal-update-status" class="modal-overlay" hidden>
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3>Modify Account Status</h3>
+        <button type="button" class="modal-close-btn" data-close="modal-update-status">&times;</button>
+      </div>
+      <form id="form-update-status" class="flow-form">
+        <input type="hidden" id="status-target-account" />
+        <p class="muted">Updating status for Account #<strong id="status-target-acc-display">—</strong></p>
+        
+        <div class="form-group">
+          <label for="status-new-value">Select Target Status</label>
+          <select id="status-new-value">
+            <option value="ACTIVE">ACTIVE (Normal transactions permitted)</option>
+            <option value="FROZEN">FROZEN (Temporarily blocked for security)</option>
+            <option value="CLOSED">CLOSED (Permanently terminated)</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close="modal-update-status">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Status</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Switch Role Quick Picker -->
+  <div id="modal-switch-role" class="modal-overlay" hidden>
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3>Switch Demo Persona</h3>
+        <button type="button" class="modal-close-btn" data-close="modal-switch-role">&times;</button>
+      </div>
+      <p class="muted">Instant switch to another role session to test multi-role security permissions.</p>
+      
+      <div class="demo-chips-grid modal-personas-grid">
+        <button type="button" class="demo-chip modal-switch-chip" data-user="alice" data-pass="Customer@1234">
+          <span class="chip-avatar customer">AL</span>
+          <div class="chip-info">
+            <strong>Alice Smith</strong>
+            <span>Customer (Cust #1)</span>
+          </div>
+        </button>
+        <button type="button" class="demo-chip modal-switch-chip" data-user="bob" data-pass="Customer@1234">
+          <span class="chip-avatar customer">BO</span>
+          <div class="chip-info">
+            <strong>Bob Jones</strong>
+            <span>Customer (Cust #2)</span>
+          </div>
+        </button>
+        <button type="button" class="demo-chip modal-switch-chip" data-user="teller01" data-pass="Teller@1234">
+          <span class="chip-avatar teller">TL</span>
+          <div class="chip-info">
+            <strong>Teller 01</strong>
+            <span>Teller (Operations)</span>
+          </div>
+        </button>
+        <button type="button" class="demo-chip modal-switch-chip" data-user="mgr01" data-pass="Manager@1234">
+          <span class="chip-avatar manager">BM</span>
+          <div class="chip-info">
+            <strong>Manager 01</strong>
+            <span>Branch Manager</span>
+          </div>
+        </button>
+        <button type="button" class="demo-chip modal-switch-chip" data-user="audit01" data-pass="Auditor@1234">
+          <span class="chip-avatar auditor">AU</span>
+          <div class="chip-info">
+            <strong>Auditor 01</strong>
+            <span>Compliance / Auditor</span>
+          </div>
+        </button>
+        <button type="button" class="demo-chip modal-switch-chip" data-user="admin" data-pass="Admin@1234">
+          <span class="chip-avatar admin">AD</span>
+          <div class="chip-info">
+            <strong>System Admin</strong>
+            <span>Super Administrator</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="modal-switch-role">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

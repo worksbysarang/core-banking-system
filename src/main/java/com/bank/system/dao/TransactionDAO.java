@@ -155,6 +155,32 @@ public class TransactionDAO {
         return results;
     }
 
+    /**
+     * Executes the PostgreSQL stored procedure {@code process_fund_transfer}
+     * via {@link CallableStatement}.
+     *
+     * @param conn            active connection
+     * @param senderAccount   sender account
+     * @param receiverAccount receiver account
+     * @param amount          positive transfer amount
+     * @param note            reference note
+     * @throws SQLException on procedure error
+     */
+    public void executeTransferProcedure(Connection conn,
+                                         long senderAccount,
+                                         long receiverAccount,
+                                         BigDecimal amount,
+                                         String note) throws SQLException {
+        try (CallableStatement cs = conn.prepareCall("CALL process_fund_transfer(?, ?, ?, ?)")) {
+            cs.setLong(1, senderAccount);
+            cs.setLong(2, receiverAccount);
+            cs.setBigDecimal(3, amount);
+            if (note != null) cs.setString(4, note);
+            else              cs.setNull(4, Types.VARCHAR);
+            cs.execute();
+        }
+    }
+
     // ── Row mapper ────────────────────────────────────────────────────────────
 
     /**

@@ -94,7 +94,7 @@ class BankingServiceTest {
         @DisplayName("deposits a valid amount and returns a transaction ID")
         void deposit_success() throws Exception {
             Account acc = makeAccount(ACC_A, new BigDecimal("1000.00"), AccountStatus.ACTIVE);
-            when(accountDAO.findById(ACC_A)).thenReturn(Optional.of(acc));
+            when(accountDAO.findById(any(), eq(ACC_A))).thenReturn(Optional.of(acc));
             doNothing().when(accountDAO).updateBalance(any(), eq(ACC_A), any());
             when(transactionDAO.insertTransaction(any(), isNull(), eq(ACC_A),
                     eq(new BigDecimal("500.00")),
@@ -130,7 +130,7 @@ class BankingServiceTest {
         @DisplayName("throws BankingException when account is FROZEN")
         void deposit_frozenAccount() throws Exception {
             Account acc = makeAccount(ACC_A, new BigDecimal("1000.00"), AccountStatus.FROZEN);
-            when(accountDAO.findById(ACC_A)).thenReturn(Optional.of(acc));
+            when(accountDAO.findById(any(), eq(ACC_A))).thenReturn(Optional.of(acc));
 
             assertThrows(BankingException.class,
                 () -> service.deposit(ACC_A, new BigDecimal("500.00"), "frozen"));
@@ -139,7 +139,7 @@ class BankingServiceTest {
         @Test
         @DisplayName("throws AccountNotFoundException when account does not exist")
         void deposit_accountNotFound() throws Exception {
-            when(accountDAO.findById(ACC_A)).thenReturn(Optional.empty());
+            when(accountDAO.findById(any(), eq(ACC_A))).thenReturn(Optional.empty());
 
             assertThrows(AccountNotFoundException.class,
                 () -> service.deposit(ACC_A, new BigDecimal("100.00"), "missing"));
@@ -158,7 +158,7 @@ class BankingServiceTest {
         @DisplayName("withdraws a valid amount and returns a transaction ID")
         void withdraw_success() throws Exception {
             Account acc = makeAccount(ACC_A, new BigDecimal("1000.00"), AccountStatus.ACTIVE);
-            when(accountDAO.findById(ACC_A)).thenReturn(Optional.of(acc));
+            when(accountDAO.findById(any(), eq(ACC_A))).thenReturn(Optional.of(acc));
             doNothing().when(accountDAO).updateBalance(any(), eq(ACC_A), any());
             when(transactionDAO.insertTransaction(any(), eq(ACC_A), isNull(),
                     eq(new BigDecimal("300.00")),
@@ -173,7 +173,7 @@ class BankingServiceTest {
         @DisplayName("throws InsufficientBalanceException when balance is too low")
         void withdraw_insufficientBalance() throws Exception {
             Account acc = makeAccount(ACC_A, new BigDecimal("100.00"), AccountStatus.ACTIVE);
-            when(accountDAO.findById(ACC_A)).thenReturn(Optional.of(acc));
+            when(accountDAO.findById(any(), eq(ACC_A))).thenReturn(Optional.of(acc));
 
             InsufficientBalanceException ex = assertThrows(InsufficientBalanceException.class,
                 () -> service.withdraw(ACC_A, new BigDecimal("500.00"), "over-draft"));
@@ -187,7 +187,7 @@ class BankingServiceTest {
         @DisplayName("throws BankingException when account is CLOSED")
         void withdraw_closedAccount() throws Exception {
             Account acc = makeAccount(ACC_A, new BigDecimal("500.00"), AccountStatus.CLOSED);
-            when(accountDAO.findById(ACC_A)).thenReturn(Optional.of(acc));
+            when(accountDAO.findById(any(), eq(ACC_A))).thenReturn(Optional.of(acc));
 
             assertThrows(BankingException.class,
                 () -> service.withdraw(ACC_A, new BigDecimal("100.00"), "closed"));
@@ -218,8 +218,8 @@ class BankingServiceTest {
             Account receiver = makeAccount(ACC_B, new BigDecimal("500.00"),  AccountStatus.ACTIVE);
 
             // Accounts are fetched in ascending order (ACC_A < ACC_B)
-            when(accountDAO.findById(ACC_A)).thenReturn(Optional.of(sender));
-            when(accountDAO.findById(ACC_B)).thenReturn(Optional.of(receiver));
+            when(accountDAO.findById(any(), eq(ACC_A))).thenReturn(Optional.of(sender));
+            when(accountDAO.findById(any(), eq(ACC_B))).thenReturn(Optional.of(receiver));
             doNothing().when(accountDAO).updateBalance(any(), anyLong(), any());
 
             when(transactionDAO.insertTransaction(any(), eq(ACC_A), eq(ACC_B),
@@ -244,8 +244,8 @@ class BankingServiceTest {
             Account sender   = makeAccount(ACC_A, new BigDecimal("50.00"), AccountStatus.ACTIVE);
             Account receiver = makeAccount(ACC_B, new BigDecimal("500.00"), AccountStatus.ACTIVE);
 
-            when(accountDAO.findById(ACC_A)).thenReturn(Optional.of(sender));
-            when(accountDAO.findById(ACC_B)).thenReturn(Optional.of(receiver));
+            when(accountDAO.findById(any(), eq(ACC_A))).thenReturn(Optional.of(sender));
+            when(accountDAO.findById(any(), eq(ACC_B))).thenReturn(Optional.of(receiver));
 
             assertThrows(InsufficientBalanceException.class,
                 () -> service.transfer(ACC_A, ACC_B, new BigDecimal("500.00"), "broke"));
@@ -254,7 +254,7 @@ class BankingServiceTest {
         @Test
         @DisplayName("throws AccountNotFoundException when sender does not exist")
         void transfer_senderNotFound() throws Exception {
-            when(accountDAO.findById(ACC_A)).thenReturn(Optional.empty());
+            when(accountDAO.findById(any(), eq(ACC_A))).thenReturn(Optional.empty());
 
             assertThrows(AccountNotFoundException.class,
                 () -> service.transfer(ACC_A, ACC_B, new BigDecimal("100.00"), "missing sender"));
@@ -264,8 +264,8 @@ class BankingServiceTest {
         @DisplayName("throws AccountNotFoundException when receiver does not exist")
         void transfer_receiverNotFound() throws Exception {
             Account sender = makeAccount(ACC_A, new BigDecimal("2000.00"), AccountStatus.ACTIVE);
-            when(accountDAO.findById(ACC_A)).thenReturn(Optional.of(sender));
-            when(accountDAO.findById(ACC_B)).thenReturn(Optional.empty());
+            when(accountDAO.findById(any(), eq(ACC_A))).thenReturn(Optional.of(sender));
+            when(accountDAO.findById(any(), eq(ACC_B))).thenReturn(Optional.empty());
 
             assertThrows(AccountNotFoundException.class,
                 () -> service.transfer(ACC_A, ACC_B, new BigDecimal("100.00"), "missing receiver"));
@@ -277,8 +277,8 @@ class BankingServiceTest {
             Account sender   = makeAccount(ACC_A, new BigDecimal("2000.00"), AccountStatus.ACTIVE);
             Account receiver = makeAccount(ACC_B, new BigDecimal("500.00"),  AccountStatus.FROZEN);
 
-            when(accountDAO.findById(ACC_A)).thenReturn(Optional.of(sender));
-            when(accountDAO.findById(ACC_B)).thenReturn(Optional.of(receiver));
+            when(accountDAO.findById(any(), eq(ACC_A))).thenReturn(Optional.of(sender));
+            when(accountDAO.findById(any(), eq(ACC_B))).thenReturn(Optional.of(receiver));
 
             assertThrows(BankingException.class,
                 () -> service.transfer(ACC_A, ACC_B, new BigDecimal("100.00"), "frozen recv"));

@@ -112,17 +112,43 @@ public final class DatabaseConfig {
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     /**
-     * Reads a mandatory environment variable; throws a descriptive
-     * {@link IllegalStateException} if it is missing or blank.
+     * Reads a configuration value from environment variable, system property, or .env file.
+     * Throws {@link IllegalStateException} if not found.
      */
     private static String requireEnv(String name) {
         String value = System.getenv(name);
-        if (value == null || value.isBlank()) {
-            throw new IllegalStateException(
-                "Required environment variable '" + name + "' is not set. " +
-                "Export DB_URL, DB_USER, and DB_PASSWORD before starting the application."
-            );
+        if (value != null && !value.isBlank()) {
+            return value;
         }
-        return value;
+        value = System.getProperty(name);
+        if (value != null && !value.isBlank()) {
+            return value;
+        }
+
+        // Fallback: check .env in working directory
+        try {
+            java.nio.file.Path envPath = java.nio.file.Path.of(".env");
+            if (java.nio.file.Files.exists(envPath)) {
+                for (String line : java.nio.file.Files.readAllLines(envPath)) {
+                    line = line.trim();
+                    if (line.startsWith("#") || line.isEmpty()) continue;
+                    int eqIdx = line.indexOf('=');
+                    if (eqIdx > 0) {
+                        String k = line.substring(0, eqIdx).trim();
+                        String v = line.substring(eqIdx + 1).trim();
+                        if (k.equals(name)) {
+                            return v;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Could not read .env file: {}", e.getMessage());
+        }
+
+        throw new IllegalStateException(
+            "Required configuration '" + name + "' is not set in environment or .env file. " +
+            "Set DB_URL, DB_USER, and DB_PASSWORD or provide a .env file."
+        );
     }
 }
